@@ -168,6 +168,7 @@ static void homing_cycle(uint8_t cycle_mask, int8_t pos_dir, bool invert_pin, fl
     limit_state = LIMIT_PIN;
     if (invert_pin) { limit_state ^= LIMIT_MASK; } // If leaving switch, invert to move.
     
+#ifndef COREXY
     // Set step pins by Bresenham line algorithm. If limit switch reached, disable and
     // flag for completion.
     if (cycle_mask & (1<<X_AXIS)) {
@@ -186,6 +187,28 @@ static void homing_cycle(uint8_t cycle_mask, int8_t pos_dir, bool invert_pin, fl
         counter_y -= step_event_count;
       }
     }
+#else
+    if ( (cycle_mask & (1<<X_AXIS)) && (limit_state & (1<<X_LIMIT_BIT)) ) { counter_x += steps[X_AXIS]; }
+    else { counter_x = 0; }
+    if ( (cycle_mask & (1<<Y_AXIS)) && (limit_state & (1<<Y_LIMIT_BIT)) ) { counter_y += steps[Y_AXIS]; }
+    else { counter_y = 0; }
+    if ( (cycle_mask & (1<<X_AXIS)) || (cycle_mask & (1<<Y_AXIS)) ) {
+      if (counter_x + counter_y != 0) {
+        out_bits ^= (1<<X_STEP_BIT);
+        if (counter_x + counter_y > 0) { out_bits &= ~(1<<X_DIRECTION_BIT); }
+        else { out_bits |= (1<<X_DIRECTION_BIT); }
+      }
+      if (counter_x - counter_y != 0) {
+        out_bits ^= (1<<Y_STEP_BIT);
+        if (counter_x - counter_y > 0) { out_bits &= ~(1<<Y_DIRECTION_BIT); }
+        else { out_bits |= (1<<X_DIRECTION_BIT); }
+      }
+      if (counter_x > 0) { counter_x -= step_event_count; }
+      if (counter_y > 0) { counter_y -= step_event_count; }
+      if (!(limit_state & (1<<X_LIMIT_BIT)) ) { cycle_mask &= ~(1<<X_AXIS); }
+      if (!(limit_state & (1<<Y_LIMIT_BIT)) ) { cycle_mask &= ~(1<<Y_AXIS); }
+    }
+#endif
     if (cycle_mask & (1<<Z_AXIS)) {
       counter_z += steps[Z_AXIS];
       if (counter_z > 0) {

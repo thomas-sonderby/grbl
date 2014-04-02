@@ -115,6 +115,10 @@
 // parser state depending on user preferences.
 #define N_STARTUP_LINE 2 // Integer (1-5)
 
+// Enable CoreXY kinematics
+// http://corexy.com/
+// #define COREXY // Default disabled. Uncomment to enable.
+
 // ---------------------------------------------------------------------------------------
 // FOR ADVANCED USERS ONLY: 
 

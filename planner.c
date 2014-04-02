@@ -356,13 +356,29 @@ void plan_buffer_line(float x, float y, float z, float feed_rate, uint8_t invert
 
   // Compute direction bits for this block
   block->direction_bits = 0;
+#ifndef COREXY
   if (target[X_AXIS] < pl.position[X_AXIS]) { block->direction_bits |= (1<<X_DIRECTION_BIT); }
   if (target[Y_AXIS] < pl.position[Y_AXIS]) { block->direction_bits |= (1<<Y_DIRECTION_BIT); }
+#else
+  if ((target[X_AXIS]-pl.position[X_AXIS]) + (target[Y_AXIS]-pl.position[Y_AXIS]) < 0) {
+    block->direction_bits |= (1<<X_DIRECTION_BIT);
+  }
+  if ((target[X_AXIS]-pl.position[X_AXIS]) - (target[Y_AXIS]-pl.position[Y_AXIS]) < 0) {
+    block->direction_bits |= (1<<Y_DIRECTION_BIT);
+  }
+#endif
   if (target[Z_AXIS] < pl.position[Z_AXIS]) { block->direction_bits |= (1<<Z_DIRECTION_BIT); }
   
   // Number of steps for each axis
+#ifndef COREXY
   block->steps_x = labs(target[X_AXIS]-pl.position[X_AXIS]);
   block->steps_y = labs(target[Y_AXIS]-pl.position[Y_AXIS]);
+#else
+  // corexy planning
+  // these equations follow the form of the dA and dB equations on http://www.corexy.com/theory.html
+  block->steps_x = labs((target[X_AXIS]-pl.position[X_AXIS]) + (target[Y_AXIS]-pl.position[Y_AXIS]));
+  block->steps_y = labs((target[X_AXIS]-pl.position[X_AXIS]) - (target[Y_AXIS]-pl.position[Y_AXIS]));
+#endif
   block->steps_z = labs(target[Z_AXIS]-pl.position[Z_AXIS]);
   block->step_event_count = max(block->steps_x, max(block->steps_y, block->steps_z));
 
@@ -371,8 +387,13 @@ void plan_buffer_line(float x, float y, float z, float feed_rate, uint8_t invert
   
   // Compute path vector in terms of absolute step target and current positions
   float delta_mm[3];
+#ifndef COREXY
   delta_mm[X_AXIS] = (target[X_AXIS]-pl.position[X_AXIS])/settings.steps_per_mm[X_AXIS];
   delta_mm[Y_AXIS] = (target[Y_AXIS]-pl.position[Y_AXIS])/settings.steps_per_mm[Y_AXIS];
+#else
+  delta_mm[X_AXIS] = ((target[X_AXIS]-pl.position[X_AXIS]) + (target[Y_AXIS]-pl.position[Y_AXIS]))/settings.steps_per_mm[X_AXIS];
+  delta_mm[Y_AXIS] = ((target[X_AXIS]-pl.position[X_AXIS]) - (target[Y_AXIS]-pl.position[Y_AXIS]))/settings.steps_per_mm[Y_AXIS];
+#endif
   delta_mm[Z_AXIS] = (target[Z_AXIS]-pl.position[Z_AXIS])/settings.steps_per_mm[Z_AXIS];
   block->millimeters = sqrt(delta_mm[X_AXIS]*delta_mm[X_AXIS] + delta_mm[Y_AXIS]*delta_mm[Y_AXIS] + 
                             delta_mm[Z_AXIS]*delta_mm[Z_AXIS]);

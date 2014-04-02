@@ -311,7 +311,14 @@ void report_realtime_status()
   // Report machine position
   printPgmString(PSTR(",MPos:")); 
   for (i=0; i<= 2; i++) {
+#ifndef COREXY
     print_position[i] = current_position[i]/settings.steps_per_mm[i];
+#else
+    // Convert A and B to X and Y
+    if (i==0) { print_position[i] = ((current_position[0]+current_position[1])/2)/settings.steps_per_mm[i]; }
+    else if (i==1) { print_position[i] = ((current_position[0]-current_position[1])/2)/settings.steps_per_mm[i]; }
+    else { print_position[i] = current_position[i]/settings.steps_per_mm[i]; }
+#endif
     if (bit_istrue(settings.flags,BITFLAG_REPORT_INCHES)) { print_position[i] *= INCH_PER_MM; }
     printFloat(print_position[i]);
     printPgmString(PSTR(","));
